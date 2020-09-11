@@ -5,13 +5,7 @@ CREATE TABLE users
     email VARCHAR UNIQUE,
     password VARCHAR,
     zipcode INTEGER,
-    coffeeshop BOOLEAN DEFAULT FALSE
-);
-
-CREATE TABLE images
-(
-    user_id INTEGER REFERENCES users (id),
-    imgname text
+    owner BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE coffeeshops
@@ -21,13 +15,20 @@ CREATE TABLE coffeeshops
     address text,
     city text, 
     state VARCHAR(2),
-    zip INTEGER, 
+    zipcode INTEGER, 
+    about text,
     owner_id INTEGER REFERENCES users (id)
+);
+
+CREATE TABLE shopImages
+(
+    coffeeshop_id INTEGER REFERENCES coffeeshops (id),
+    imgname text
 );
 
 CREATE TABLE visits(
     id serial primary key,
     coffeeshop_id INTEGER REFERENCES coffeeshops (id),
     visitor_id INTEGER REFERENCES users (id),
-    stamper INTEGER REFERENCES users (id)
+    stamps INTEGER
 );
