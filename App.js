@@ -1,40 +1,38 @@
 //dependencies
-const express = require('express');
-const cors = require('cors')
-const secretInfo = require('./config.js')
-const app = express()
-const pgp = require('pg-promise')()
-const eS = require('express-session')
-const expressSession = eS(secretInfo().secret)
+const express = require("express");
+const cors = require("cors");
+const secretInfo = require("./config.js");
+const app = express();
+const pgp = require("pg-promise")();
+const eS = require("express-session");
+const expressSession = eS(secretInfo().secret);
 
 //for passport encryption
-const bcrypt = require('bcrypt')
-const passport = require('passport')
-const Strategy = require('passport-local').Strategy
-const saltRounds = 10
+const bcrypt = require("bcrypt");
+const passport = require("passport");
+const Strategy = require("passport-local").Strategy;
+const saltRounds = 10;
 
 const passInfo = (req, res, next) => {
-    res.db = db
-    res.saltRounds = saltRounds
-    res.bcrypt = bcrypt
-    next()
-}
+  res.db = db;
+  res.saltRounds = saltRounds;
+  res.bcrypt = bcrypt;
+  next();
+};
 
-app.use(passInfo)
-app.use(expressSession)
+app.use(passInfo);
+app.use(expressSession);
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 //connects to postgres db
-const db = pgp(secretInfo().connect)
+const db = pgp(secretInfo().connect);
 
-//logic to create a user 
+//logic to create a user
 const createUser = async (req, res, next) => {
-
     let hash = await bcrypt.hash(req.body.password, saltRounds)
     const searchRegExp = /'/g;
     const replaceWith = "''";
@@ -45,6 +43,7 @@ const createUser = async (req, res, next) => {
     res.send(newUser)
     next()
 }
+
 
 //logic to create a shop
 const createOwner = async (req, res, next) => {
@@ -78,9 +77,11 @@ const createShop = async (req, res, next) => {
 
 //checks if user aleady exists
 const checkIfExist = async (req, res, next) => {
-    let result = await db.oneOrNone(`SELECT * FROM users WHERE username='${req.body.username}'`)
-    result != null ? res.send(`User Already Exists`) : next()
-}
+  let result = await db.oneOrNone(
+    `SELECT * FROM users WHERE username='${req.body.username}'`
+  );
+  result != null ? res.send(`User Already Exists`) : next();
+};
 
 
 //checks if shop aleady exists
@@ -117,22 +118,31 @@ const  findUsers = async (req, res, next) => {
     next()
 }
 
-// seperate pg promise
-passport.use(new Strategy((username, password, callback) => {
-    db.one(`SELECT * FROM users WHERE username='${username}'`)
-        .then(u => {
-            console.log(u) //
-            bcrypt.compare(password, u.password)
-                .then(result => {
-                    console.log(result)
-                    if (!result) return callback(null, false)
-                    return callback(null, u)
-                })
-        })
-        .catch(() => callback(null, false))
-}))
+//find shops
+const  findMyShops = async (req, res, next) => {
+    let result = await db.manyOrNone(`SELECT * FROM coffeeshops WHERE owner_id='${req.body.id}'`)
+    res.send(result)
+    next()
+}
 
-passport.serializeUser((user, callback) => callback(null, user.id))
+
+// seperate pg promise
+passport.use(
+  new Strategy((username, password, callback) => {
+    db.one(`SELECT * FROM users WHERE username='${username}'`)
+      .then((u) => {
+        console.log(u); //
+        bcrypt.compare(password, u.password).then((result) => {
+          console.log(result);
+          if (!result) return callback(null, false);
+          return callback(null, u);
+        });
+      })
+      .catch(() => callback(null, false));
+  })
+);
+
+passport.serializeUser((user, callback) => callback(null, user.id));
 
 passport.deserializeUser((id, callback) => {
     db.one(`SELECT * FROM users WHERE id='${id}'`)
@@ -181,11 +191,14 @@ app.get('/findusers', findUsers, (req, res) =>{
 
 })
 
+app.post('/myshops', findMyShops, (req, res) =>{
+
+})
+
 app.get('/coffeeshop/:id', async (req, res) =>{
     console.log(req.params)
     let coffeeshop = await db.one(`SELECT * FROM coffeeshops where id = '${req.params.id}'`)
     res.send(coffeeshop)
 })
 app.listen(5000)
-
 
