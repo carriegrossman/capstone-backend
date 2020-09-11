@@ -117,6 +117,13 @@ const  findUsers = async (req, res, next) => {
     next()
 }
 
+//find shops
+const  findMyShops = async (req, res, next) => {
+    let result = await db.manyOrNone(`SELECT * FROM coffeeshops WHERE owner_id='${req.body.id}'`)
+    res.send(result)
+    next()
+}
+
 // seperate pg promise
 passport.use(new Strategy((username, password, callback) => {
     db.one(`SELECT * FROM users WHERE username='${username}'`)
@@ -178,6 +185,10 @@ app.get('/find', findCoffeeShops, (req, res) =>{
 })
 
 app.get('/findusers', findUsers, (req, res) =>{
+
+})
+
+app.post('/myshops', findMyShops, (req, res) =>{
 
 })
 
