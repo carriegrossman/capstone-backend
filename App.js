@@ -85,7 +85,7 @@ passport.deserializeUser((id, callback) => {
         })
         .catch(() => callback({ 'not-found': 'No User With That ID Is Found' }))
 })
-t
+
 app.get(`/`, checkIsLoggedIn, async (req, res) => {
 })
 
