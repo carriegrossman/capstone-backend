@@ -47,18 +47,34 @@ const createUser = async (req, res, next) => {
 }
 
 //logic to create a shop
-const createShop = async (req, res, next) => {
+const createOwner = async (req, res, next) => {
 
     let hash = await bcrypt.hash(req.body.password, saltRounds)
     const searchRegExp = /'/g;
     const replaceWith = "''";
-    let insertion = await db.none(`INSERT INTO users (username, email, password, zipcode, coffeeshop) VALUES ($1, $2, $3, $4, $5)`,
+    let insertion = await db.none(`INSERT INTO users (username, email, password, zipcode, owner) VALUES ($1, $2, $3, $4, $5)`,
         [req.body.username, req.body.email, hash, parseInt(req.body.zipcode), true])
 
     let newShop = await db.one(`SELECT * FROM users where username = '${req.body.username}'`)
     res.send(newShop)
     next()
 }
+
+//logic to create shop
+
+const createShop = async (req, res, next) => {
+    console.log(req.body)
+    const searchRegExp = /'/g;
+    const replaceWith = "''";
+    let insertion = await db.none(`INSERT INTO coffeeshops (name, address, city, state, zipcode, about, owner_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.body.name, req.body.address, req.body.city, "GA", parseInt(req.body.zipcode), req.body.about, req.body.id])
+
+    let newShop = await db.manyOrNone(`SELECT * FROM coffeeshops where name = '${req.body.name}'`)
+    console.log(newShop)
+    res.send(newShop)
+    next()
+}
+
 
 //checks if user aleady exists
 const checkIfExist = async (req, res, next) => {
@@ -87,6 +103,19 @@ const checkIsLoggedIn = (req, res, next) => {
     next()
 }
 
+//find coffee shops 
+const  findCoffeeShops = async (req, res, next) => {
+    let result = await db.any(`SELECT * FROM coffeeshops`)
+    res.send(result)
+    next()
+}
+
+//find users
+const  findUsers = async (req, res, next) => {
+    let result = await db.any(`SELECT * FROM users`)
+    res.send(result)
+    next()
+}
 
 // seperate pg promise
 passport.use(new Strategy((username, password, callback) => {
@@ -132,13 +161,26 @@ app.post('/register', checkIfExist, createUser, (req, res) => {
 
 })
 
-app.post('/registershop', checkIfExist, createShop, (req, res) => {
+app.post('/registerowner', checkIfExist, createOwner, (req, res) => {
 
 })
 
+app.post('/registershop', createShop, (req, res) => {
+
+})
 app.post('/search', searchCoffeeShop, (req, res) =>{
 
 })
+
+
+app.get('/find', findCoffeeShops, (req, res) =>{
+
+})
+
+app.get('/findusers', findUsers, (req, res) =>{
+
+})
+
 app.get('/coffeeshop/:id', async (req, res) =>{
     console.log(req.params)
     let coffeeshop = await db.one(`SELECT * FROM coffeeshops where id = '${req.params.id}'`)
