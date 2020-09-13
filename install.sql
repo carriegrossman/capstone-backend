@@ -32,3 +32,14 @@ CREATE TABLE visits(
     visitor_id INTEGER REFERENCES users (id),
     stamps INTEGER
 );
+
+
+CREATE TABLE rewards(
+    id serial primary key,
+    coffeeshop_id INTEGER REFERENCES coffeeshops (id),
+    visitor_id INTEGER REFERENCES users (id),
+    rewards INTEGER
+);
+
+create unique index coffeeshop_id_visitor_id_stamps on visits (coffeeshop_id, visitor_id);
+create unique index coffeeshop_id_visitor_id_rewards on rewards (coffeeshop_id, visitor_id);
