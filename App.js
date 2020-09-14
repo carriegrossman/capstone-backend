@@ -185,6 +185,22 @@ const fetchYourVisits = async (req, res, next) => {
     next();
 };
 
+
+//logic to update rewards 
+
+const updateReward = async (req, res, next) => {
+    let decrementReward = await db.none(`UPDATE rewards SET rewards = rewards-1 WHERE visitor_id= ${req.body.id} AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
+
+    let rewards = await db.oneOrNone(
+        `SELECT * FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
+    
+    if (rewards.rewards === 0){
+    let deleted = await db.none(`DELETE FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}' AND rewards = 0`)
+    }
+
+    res.send(rewards)  
+}
+
 // seperate pg promise
 passport.use(
     new Strategy((username, password, callback) => {
@@ -239,6 +255,8 @@ app.get("/findusers", findUsers, (req, res) => { });
 app.post("/myshops", findMyShops, (req, res) => { });
 
 app.post("/stamp", storeStamps, (req, res) => { });
+
+app.post("/updatereward", updateReward, (req, res) => { });
 
 app.get("/coffeeshop/:id", async (req, res) => {
     let coffeeshop = await db.one(

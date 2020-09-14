@@ -41,5 +41,6 @@ CREATE TABLE rewards(
     rewards INTEGER
 );
 
+
 create unique index coffeeshop_id_visitor_id_stamps on visits (coffeeshop_id, visitor_id);
 create unique index coffeeshop_id_visitor_id_rewards on rewards (coffeeshop_id, visitor_id);
