@@ -14,10 +14,10 @@ const Strategy = require("passport-local").Strategy;
 const saltRounds = 10;
 
 const passInfo = (req, res, next) => {
-    res.db = db;
-    res.saltRounds = saltRounds;
-    res.bcrypt = bcrypt;
-    next();
+  res.db = db;
+  res.saltRounds = saltRounds;
+  res.bcrypt = bcrypt;
+  next();
 };
 
 app.use(passInfo);
@@ -33,7 +33,8 @@ const db = pgp(secretInfo().connect);
 
 //logic to create a user
 const createUser = async (req, res, next) => {
-    let hash = await bcrypt.hash(req.body.password, saltRounds);
+  
+    let hash = await bcrypt.hash(req.body.password, saltRounds)
     const searchRegExp = /'/g;
     const replaceWith = "''";
     let insertion = await db.none(
@@ -47,6 +48,7 @@ const createUser = async (req, res, next) => {
     res.send(newUser);
     next();
 };
+
 
 //logic to create a shop
 const createOwner = async (req, res, next) => {
@@ -94,11 +96,13 @@ const createShop = async (req, res, next) => {
 
 //checks if user aleady exists
 const checkIfExist = async (req, res, next) => {
+
     let result = await db.oneOrNone(
         `SELECT * FROM users WHERE username='${req.body.username}'`
     );
     result != null ? res.send(`User Already Exists`) : next();
 };
+
 
 //checks if shop aleady exists
 const checkIfShopExist = async (req, res, next) => {
@@ -168,6 +172,7 @@ const storeStamps = async (req, res, next) => {
     res.send(allStamps);
     next();
 };
+
 
 //logic to fetch visits 
 
@@ -259,3 +264,4 @@ app.post("/getshop", async (req, res) => {
 
 app.post("/yourvisits", fetchYourVisits, (req, res) => { });
 app.listen(5000);
+
