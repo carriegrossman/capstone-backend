@@ -14,10 +14,10 @@ const Strategy = require("passport-local").Strategy;
 const saltRounds = 10;
 
 const passInfo = (req, res, next) => {
-  res.db = db;
-  res.saltRounds = saltRounds;
-  res.bcrypt = bcrypt;
-  next();
+    res.db = db;
+    res.saltRounds = saltRounds;
+    res.bcrypt = bcrypt;
+    next();
 };
 
 app.use(passInfo);
@@ -33,7 +33,7 @@ const db = pgp(secretInfo().connect);
 
 //logic to create a user
 const createUser = async (req, res, next) => {
-  
+
     let hash = await bcrypt.hash(req.body.password, saltRounds)
     const searchRegExp = /'/g;
     const replaceWith = "''";
@@ -49,6 +49,18 @@ const createUser = async (req, res, next) => {
     next();
 };
 
+//logic to create review 
+const addReview = async (req, res, next) => {
+    let insertion = await db.none(
+        `INSERT INTO reviews (coffeeshop_id, visitor_id, stars, review) VALUES ($1, $2, $3, $4)`,
+        [req.body.coffeeshop_id, req.body.visitor_id, req.body.stars, req.body.review]
+    );
+  
+    let reviews = await db.manyOrNone(
+        `SELECT * FROM reviews where coffeeshop_id = '${(req.body.coffeeshop_id)}'`
+    );
+    res.send(reviews);
+}
 
 //logic to create a shop
 const createOwner = async (req, res, next) => {
@@ -70,7 +82,6 @@ const createOwner = async (req, res, next) => {
 //logic to create shop
 
 const createShop = async (req, res, next) => {
-    console.log(req.body);
     const searchRegExp = /'/g;
     const replaceWith = "''";
     let insertion = await db.none(
@@ -89,7 +100,6 @@ const createShop = async (req, res, next) => {
     let newShop = await db.manyOrNone(
         `SELECT * FROM coffeeshops where name = '${req.body.name}'`
     );
-    console.log(newShop);
     res.send(newShop);
     next();
 };
@@ -162,9 +172,9 @@ const storeStamps = async (req, res, next) => {
     //     `INSERT INTO visits (coffeeshop_id, visitor_id, stamps) VALUES ($1, $2, $3)`,[req.body.coffeeshop_id, req.body.visitor_id, 1]
     // );
 
-    let allStamps = await db.oneOrNone( `SELECT * FROM visits where coffeeshop_id = '${req.body.coffeeshop_id}' AND visitor_id = '${req.body.visitor_id}'`);
+    let allStamps = await db.oneOrNone(`SELECT * FROM visits where coffeeshop_id = '${req.body.coffeeshop_id}' AND visitor_id = '${req.body.visitor_id}'`);
 
-    if (allStamps.stamps %10===0){
+    if (allStamps.stamps % 10 === 0) {
         let upsertRewards = await db.none(`insert into rewards (coffeeshop_id, visitor_id, rewards) values ($1, $2, $3)
         on conflict (coffeeshop_id, visitor_id)
         do update set rewards = rewards.rewards + 1`, [req.body.coffeeshop_id, req.body.visitor_id, 1])
@@ -175,9 +185,7 @@ const storeStamps = async (req, res, next) => {
 
 
 //logic to fetch visits 
-
 const fetchYourVisits = async (req, res, next) => {
-    console.log(req.body)
     let result = await db.manyOrNone(
         `SELECT * FROM visits WHERE visitor_id='${req.body.id}'`
     );
@@ -185,14 +193,26 @@ const fetchYourVisits = async (req, res, next) => {
     next();
 };
 
+//logic to update rewards 
+const updateReward = async (req, res, next) => {
+    let decrementReward = await db.none(`UPDATE rewards SET rewards = rewards-1 WHERE visitor_id= ${req.body.id} AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
+
+    let rewards = await db.oneOrNone(
+        `SELECT * FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
+
+    if (rewards.rewards === 0) {
+        let deleted = await db.none(`DELETE FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}' AND rewards = 0`)
+    }
+
+    res.send(rewards)
+}
+
 // seperate pg promise
 passport.use(
     new Strategy((username, password, callback) => {
         db.one(`SELECT * FROM users WHERE username='${username}'`)
             .then((u) => {
-                console.log(u); //
                 bcrypt.compare(password, u.password).then((result) => {
-                    console.log(result);
                     if (!result) return callback(null, false);
                     return callback(null, u);
                 });
@@ -214,7 +234,6 @@ passport.deserializeUser((id, callback) => {
 app.get(`/`, checkIsLoggedIn, async (req, res) => { });
 
 app.post("/login", passport.authenticate("local"), (req, res) => {
-    console.log(req.user);
     if (req.user) {
         return res.send({ loggedin: "true", user: req.user });
     }
@@ -240,6 +259,10 @@ app.post("/myshops", findMyShops, (req, res) => { });
 
 app.post("/stamp", storeStamps, (req, res) => { });
 
+app.post("/reviews", addReview, (req, res) => { });
+
+app.post("/updatereward", updateReward, (req, res) => { });
+
 app.get("/coffeeshop/:id", async (req, res) => {
     let coffeeshop = await db.one(
         `SELECT * FROM coffeeshops where id = '${req.params.id}'`
@@ -261,7 +284,27 @@ app.post("/getshop", async (req, res) => {
     res.send(shop);
 });
 
+app.post("/getvisits", async (req, res) => {
+    let visits = await db.manyOrNone(
+        `SELECT stamps FROM visits where coffeeshop_id = '${(req.body.coffeeshop_id)}'`
+    );
+    res.send(visits);
+});
 
+app.post("/getreviews", async (req, res) => {
+    let reviews = await db.manyOrNone(
+        `SELECT * FROM reviews where coffeeshop_id = '${(req.body.coffeeshop_id)}'`
+    );
+    res.send(reviews);
+});
+
+app.post("/getstamps", async (req, res)=>{
+    let stamps = await db.oneOrNone(
+        `SELECT * FROM visits where visitor_id = '${(req.body.visitor_id)}'`
+    );
+    res.send(stamps)
+
+})
 app.post("/yourvisits", fetchYourVisits, (req, res) => { });
 app.listen(5000);
 
