@@ -138,7 +138,7 @@ const searchCoffeeShop = async (req, res, next) => {
     next();
 };
 
-//find coffee shops
+//find coffee shopsg
 const findCoffeeShops = async (req, res, next) => {
     let result = await db.any(`SELECT * FROM coffeeshops`);
     res.send(result);
@@ -147,7 +147,7 @@ const findCoffeeShops = async (req, res, next) => {
 
 //find users
 const findUsers = async (req, res, next) => {
-    let result = await db.any(`SELECT * FROM users`);
+    let result = await db.manyOrNone(`SELECT * FROM users`);
     res.send(result);
     next();
 };
@@ -168,9 +168,6 @@ const storeStamps = async (req, res, next) => {
     on conflict (coffeeshop_id, visitor_id)
     do update set stamps = visits.stamps + 1`, [req.body.coffeeshop_id, req.body.visitor_id, 1])
 
-    // let insertion = await db.none(
-    //     `INSERT INTO visits (coffeeshop_id, visitor_id, stamps) VALUES ($1, $2, $3)`,[req.body.coffeeshop_id, req.body.visitor_id, 1]
-    // );
 
     let allStamps = await db.oneOrNone(`SELECT * FROM visits where coffeeshop_id = '${req.body.coffeeshop_id}' AND visitor_id = '${req.body.visitor_id}'`);
 
@@ -299,11 +296,19 @@ app.post("/getreviews", async (req, res) => {
 });
 
 app.post("/getstamps", async (req, res)=>{
+    
     let stamps = await db.oneOrNone(
-        `SELECT * FROM visits where visitor_id = '${(req.body.visitor_id)}'`
-    );
+        `SELECT * FROM visits where visitor_id = '${(req.body.visitor_id)}' AND coffeeshop_id = '${(req.body.coffeeshop_id)}'`)
+    if (stamps === null){
+        let insertion = await db.none(
+                `INSERT INTO visits (coffeeshop_id, visitor_id, stamps) VALUES ($1, $2, $3)`,[req.body.coffeeshop_id, req.body.visitor_id, 0])
+        let stamps = await db.oneOrNone(
+                    `SELECT * FROM visits where visitor_id = '${(req.body.visitor_id)}' AND coffeeshop_id = '${(req.body.coffeeshop_id)}'`
+                );
+        res.send(stamps)
+    }else{
     res.send(stamps)
-
+    }
 })
 app.post("/yourvisits", fetchYourVisits, (req, res) => { });
 app.listen(5000);
