@@ -41,6 +41,13 @@ CREATE TABLE rewards(
     rewards INTEGER
 );
 
+CREATE TABLE reviews(
+    id serial primary key,
+    coffeeshop_id INTEGER REFERENCES coffeeshops (id),
+    visitor_id INTEGER REFERENCES users (id),
+    stars INTEGER, 
+    review text
+);
 
 create unique index coffeeshop_id_visitor_id_stamps on visits (coffeeshop_id, visitor_id);
 create unique index coffeeshop_id_visitor_id_rewards on rewards (coffeeshop_id, visitor_id);
