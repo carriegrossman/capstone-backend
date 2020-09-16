@@ -23,7 +23,9 @@ CREATE TABLE coffeeshops
 CREATE TABLE shopImages
 (
     coffeeshop_id INTEGER REFERENCES coffeeshops (id),
-    imgname text
+    imgname text,
+    caption text,
+    img text
 );
 
 CREATE TABLE visits(
@@ -49,6 +51,12 @@ CREATE TABLE reviews(
     review text
 );
 
+CREATE TABLE shopUpdates(
+    id serial primary key,
+    coffeeshop_id INTEGER REFERENCES coffeeshops (id),
+    date DATE,
+    owner_update text
+);
 
 create unique index coffeeshop_id_visitor_id_stamps on visits (coffeeshop_id, visitor_id);
 create unique index coffeeshop_id_visitor_id_rewards on rewards (coffeeshop_id, visitor_id);
