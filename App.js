@@ -330,7 +330,7 @@ app.post("/addupdate", async (req, res)=> {
   );
 
   let updates  = await db.manyOrNone(
-    `SELECT * FROM shopUpdates where coffeeshop_id = '${1}'`
+    `SELECT * FROM shopUpdates where coffeeshop_id = '${req.body.coffeeshop_id}'`
   );
   res.send(updates);
 })
