@@ -88,9 +88,9 @@ app.get("/currentUser", checkIsLoggedIn, (req, res) => {
   res.send({ loggedin: "true", user: req.user });
 });
 
-app.post("/register", (req,res) => checkIfExist(db, req, res),  (req, res) => createUser(db, req, res));
+app.post("/register", (req,res, next) => checkIfExist(db, req, res, next),  (req, res) => createUser(db, req, res));
 
-app.post("/registerowner", (req,res) => checkIfExist(db, req, res),  (req, res) => createOwner(db, req, res));
+app.post("/registerowner", (req,res, next) => checkIfExist(db, req, res, next),  (req, res) => createOwner(db, req, res));
 
 app.post("/registershop", (req, res )=> createShop(db, req, res));
 

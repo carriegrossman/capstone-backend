@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-
+const saltRounds = 10;
 //logic to create an owner
 const createOwner = async (db, req, res) => {
     let hash = await bcrypt.hash(req.body.password, saltRounds);

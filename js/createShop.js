@@ -1,5 +1,3 @@
-const bcrypt = require("bcrypt");
-
 //logic to create shop
 const createShop = async (db, req, res) => {
     const searchRegExp = /'/g;
