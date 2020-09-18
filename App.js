@@ -8,6 +8,22 @@ const pgp = require("pg-promise")();
 const eS = require("express-session");
 const expressSession = eS(secretInfo().secret);
 
+const checkIfExist = require('./js/checkIfExists.js')
+const checkIfShopExist = require('./js/checkIfShopExist.js')
+const checkIsLoggedIn = require('./js/checkIfLoggedIn.js')
+const createOwner = require('./js/createOwner.js')
+const addReview = require('./js/createReview.js')
+const createShop = require('./js/createShop.js')
+const createUser = require('./js/createUser.js')
+const fetchYourVisits = require('./js/fetchVisits.js')
+const searchCoffeeShop = require('./js/searchCoffeeShop.js')
+const storeStamps = require('./js/storeStamps.js')
+const updateReward = require('./js/updateRewards.js')
+const findCoffeeShops = require('./js/findCoffeeShops.js')
+const findMyShops = require('./js/findMyShops')
+const findUsers = require('./js/findUsers.js')
+
+
 //for passport encryption
 const bcrypt = require("bcrypt");
 const passport = require("passport");
@@ -28,184 +44,10 @@ app.use(passport.session());
 app.use(cors());
 app.use(bodyParser.json({ limit: "50mb" }))
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }))
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
+
 
 //connects to postgres db
 const db = pgp(secretInfo().connect);
-
-//logic to create a user
-const createUser = async (req, res, next) => {
-  let hash = await bcrypt.hash(req.body.password, saltRounds)
-  const searchRegExp = /'/g;
-  const replaceWith = "''";
-  let insertion = await db.none(
-    `INSERT INTO users (username, email, password, zipcode) VALUES ($1, $2, $3, $4)`,
-    [req.body.username, req.body.email, hash, parseInt(req.body.zipcode), false]
-  );
-
-  let newUser = await db.one(
-    `SELECT * FROM users where username = '${req.body.username}'`
-  );
-  res.send(newUser);
-  next();
-};
-
-//logic to create review 
-const addReview = async (req, res, next) => {
-  let insertion = await db.none(
-    `INSERT INTO reviews (coffeeshop_id, visitor_id, stars, review) VALUES ($1, $2, $3, $4)`,
-    [req.body.coffeeshop_id, req.body.visitor_id, req.body.stars, req.body.review]
-  );
-
-  let reviews = await db.manyOrNone(
-    `SELECT * FROM reviews where coffeeshop_id = '${(req.body.coffeeshop_id)}'`
-  );
-  res.send(reviews);
-}
-//logic to create a shop
-const createOwner = async (req, res, next) => {
-  let hash = await bcrypt.hash(req.body.password, saltRounds);
-  const searchRegExp = /'/g;
-  const replaceWith = "''";
-  let insertion = await db.none(
-    `INSERT INTO users (username, email, password, zipcode, owner) VALUES ($1, $2, $3, $4, $5)`,
-    [req.body.username, req.body.email, hash, parseInt(req.body.zipcode), true]
-  );
-
-  let newShop = await db.one(
-    `SELECT * FROM users where username = '${req.body.username}'`
-  );
-  res.send(newShop);
-  next();
-};
-
-//logic to create shop
-
-const createShop = async (req, res, next) => {
-  const searchRegExp = /'/g;
-  const replaceWith = "''";
-  let insertion = await db.none(
-    `INSERT INTO coffeeshops (name, address, city, state, zipcode, about, owner_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      req.body.name,
-      req.body.address,
-      req.body.city,
-      "GA",
-      parseInt(req.body.zipcode),
-      req.body.about,
-      req.body.id,
-    ]
-  );
-
-  let newShop = await db.manyOrNone(
-    `SELECT * FROM coffeeshops where name = '${req.body.name}'`
-  );
-  res.send(newShop);
-  next();
-};
-
-//checks if user aleady exists
-const checkIfExist = async (req, res, next) => {
-  let result = await db.oneOrNone(
-    `SELECT * FROM users WHERE username='${req.body.username}'`
-  );
-  result != null ? res.send(`User Already Exists`) : next();
-};
-
-//checks if shop aleady exists
-const checkIfShopExist = async (req, res, next) => {
-  let result = await db.oneOrNone(
-    `SELECT * FROM users WHERE username='${req.body.username}'`
-  );
-  result != null ? res.send(`User Already Exists`) : next();
-};
-
-const checkIsLoggedIn = (req, res, next) => {
-  let isLoggedIn = req.isAuthenticated();
-  if (isLoggedIn) {
-    return next();
-  }
-  res.send({ loggedin: "false" });
-};
-//logic to search coffee shop
-const searchCoffeeShop = async (req, res, next) => {
-  let result = await db.any(
-    `SELECT * FROM users WHERE id='${Number(req.body.id)}'`
-  );
-  res.send(result);
-  next();
-};
-
-//find coffee shopsg
-const findCoffeeShops = async (req, res, next) => {
-  let result = await db.any(`SELECT * FROM coffeeshops`);
-  res.send(result);
-  next();
-};
-
-//find users
-const findUsers = async (req, res, next) => {
-
-  let result = await db.manyOrNone(`SELECT * FROM users`);
-  res.send(result);
-  next();
-};
-
-//find shops
-const findMyShops = async (req, res, next) => {
-  let result = await db.manyOrNone(
-    `SELECT * FROM coffeeshops WHERE owner_id='${req.body.id}'`
-  );
-  res.send(result);
-  next();
-};
-
-//logic to store stamps
-const storeStamps = async (req, res, next) => {
-  let upsert = await db.none(
-    `insert into visits (coffeeshop_id, visitor_id, stamps) values ($1, $2, $3)
-    on conflict (coffeeshop_id, visitor_id)
-    do update set stamps = visits.stamps + 1`, [req.body.coffeeshop_id, req.body.visitor_id, 1])
-
-  // let insertion = await db.none(
-  //     `INSERT INTO visits (coffeeshop_id, visitor_id, stamps) VALUES ($1, $2, $3)`,[req.body.coffeeshop_id, req.body.visitor_id, 1]
-  // );
-  let allStamps = await db.oneOrNone(`SELECT * FROM visits where coffeeshop_id = '${req.body.coffeeshop_id}' AND visitor_id = '${req.body.visitor_id}'`);
-
-  if (allStamps.stamps % 10 === 0) {
-    let upsertRewards = await db.none(`insert into rewards (coffeeshop_id, visitor_id, rewards) values ($1, $2, $3)
-        on conflict (coffeeshop_id, visitor_id)
-        do update set rewards = rewards.rewards + 1`,
-      [req.body.coffeeshop_id, req.body.visitor_id, 1]
-    );
-  }
-  res.send(allStamps);
-  next();
-};
-
-//logic to fetch visits 
-const fetchYourVisits = async (req, res, next) => {
-  let result = await db.manyOrNone(
-    `SELECT * FROM visits WHERE visitor_id='${req.body.id}'`
-  );
-  res.send(result);
-  next();
-};
-
-//logic to update rewards 
-const updateReward = async (req, res, next) => {
-  let decrementReward = await db.none(`UPDATE rewards SET rewards = rewards-1 WHERE visitor_id= ${req.body.id} AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
-
-  let rewards = await db.oneOrNone(
-    `SELECT * FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}'`)
-
-  if (rewards.rewards === 0) {
-    let deleted = await db.none(`DELETE FROM rewards where visitor_id = '${req.body.id}' AND coffeeshop_id ='${req.body.coffeeshop_id}' AND rewards = 0`)
-  }
-
-  res.send(rewards)
-}
 
 // seperate pg promise
 passport.use(
@@ -232,6 +74,7 @@ passport.deserializeUser((id, callback) => {
     .catch(() => callback({ "not-found": "No User With That ID Is Found" }));
 });
 
+
 app.get(`/`, checkIsLoggedIn, async (req, res) => { });
 
 app.post("/login", passport.authenticate("local"), (req, res) => {
@@ -245,24 +88,25 @@ app.get("/currentUser", checkIsLoggedIn, (req, res) => {
   res.send({ loggedin: "true", user: req.user });
 });
 
-app.post("/register", checkIfExist, createUser, (req, res) => { });
+app.post("/register", (req,res) => checkIfExist(db, req, res),  (req, res) => createUser(db, req, res));
 
-app.post("/registerowner", checkIfExist, createOwner, (req, res) => { });
+app.post("/registerowner", (req,res) => checkIfExist(db, req, res),  (req, res) => createOwner(db, req, res));
 
-app.post("/registershop", createShop, (req, res) => { });
-app.post("/search", searchCoffeeShop, (req, res) => { });
+app.post("/registershop", (req, res )=> createShop(db, req, res));
 
-app.get("/find", findCoffeeShops, (req, res) => { });
+app.post("/search", (req, res )=> searchCoffeeShop(db, req, res));
 
-app.get("/findusers", findUsers, (req, res) => { });
+app.get("/find", (req, res )=> findCoffeeShops(db, req, res));
 
-app.post("/myshops", findMyShops, (req, res) => { });
+app.get("/findusers", (req, res )=> findUsers(db, req, res));
 
-app.post("/stamp", storeStamps, (req, res) => { });
+app.post("/myshops", (req, res )=> findMyShops(db, req, res));
 
-app.post("/reviews", addReview, (req, res) => { });
+app.post("/stamp", (req, res )=> storeStamps(db, req, res));
 
-app.post("/updatereward", updateReward, (req, res) => { });
+app.post("/reviews", (req, res )=> addReview(db, req, res));
+
+app.post("/updatereward", (req, res )=> updateReward(db, req, res));
 
 app.get("/coffeeshop/:id", async (req, res) => {
   let coffeeshop = await db.one(
@@ -334,7 +178,7 @@ app.post("/addupdate", async (req, res)=> {
   );
   res.send(updates);
 })
-app.post("/yourvisits", fetchYourVisits, (req, res) => { });
+app.post("/yourvisits", (req, res )=> fetchYourVisits(db, req, res));
 
 app.post("/getphotos", async (req, res) => {
   let images = await db.manyOrNone(
